@@ -1,0 +1,2 @@
+[nexus-server]
+64.227.182.82 ansible_ssh_private_key_file=~/.ssh/do-raju-2 ansible_user=root

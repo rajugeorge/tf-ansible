@@ -1,0 +1,51 @@
+---
+- name: Install node and npm
+  hosts: "{{ host }}"
+  vars_files:
+    - project-vars
+  tasks:
+    - name: Update apt repo and cache
+      apt: update_cache=yes force_apt_get=yes
+    - name: Install nodejs and npm
+      apt:
+        pkg:
+          - nodejs
+          - npm
+
+- name: Create a linux user
+  hosts: "{{ host }}"
+  vars_files:
+    - project-vars
+  tasks:
+    - name: Create linux user
+      user:
+        name: "{{ linux_user }}"
+        comment: anstest admin
+        group: admin
+      register: user_creation_status
+    - debug: msg={{ user_creation_status.uid }}
+
+- name: Deploy nodejs app
+  hosts: "{{ host }}"
+  vars_files:
+    - project-vars
+  become: True
+  become_user: anstest
+  tasks:
+    - name: Unpack and nodejs file
+      unarchive:
+        src: /Users/rajugeorge/Documents/projects/terraform/tf-self/ansible-node/nodejs-app-1.0.0.tgz
+        dest: /home/anstest
+    - name: Install dependecies
+      npm:
+        path: /home/anstest/package
+    - name: Start the application
+      command:
+        chdir: /home/anstest/package/app
+        cmd: node server
+      async: 1000
+      poll: 0
+    - name: Ensure app is running
+      shell: ps aux | grep node
+      register: app_status
+    - debug: msg={{app_status.stdout_lines}}

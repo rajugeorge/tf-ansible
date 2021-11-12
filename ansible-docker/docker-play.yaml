@@ -1,0 +1,57 @@
+---
+- name: Update apt
+  hosts: nexus-server
+  tasks:
+    - name: Update apt
+      apt: update_cache=yes force_apt_get=yes
+
+- name: Create linux user
+  hosts: nexus-server
+  vars_files:
+    - project-vars
+  tasks:
+    - name: Create linux user
+      user:
+        name: "{{ linux_user }}"
+        comment: docker sudo
+        shell: /bin/bash
+        groups: sudo
+        append: yes
+        password: "{{ password }}"
+        update_password: always
+
+- name: Add authorized keys
+  hosts: nexus-server
+  vars_files:
+    - project-vars
+  tasks:
+    - name: Check if the key exists
+      local_action: stat path="{{ key_location }}"
+      register: key_exists
+    - name: Set authorized key taken from file
+      authorized_key:
+        user: "{{ linux_user }}"
+        state: present
+        key: "{{ lookup('file',  key_location ) }}"
+      when: key_exists.stat.exists
+
+- name: Copy sshd_config
+  hosts: nexus-server
+  vars_files:
+    - project-vars
+  tasks:
+    - name: Check if the key exists
+      local_action: stat path="{{ config_location }}"
+      register: config_exists
+    - name: Copy config to sshd_config folder
+      copy:
+        src: "{{ config_location }}"
+        dest: "{{ sshd_location }}"
+        owner: root
+        group: root
+        mode: "0644"
+      when: config_exists.stat.exists
+    - name: Reload service sshd, in all cases
+      service:
+        name: sshd
+        state: reloaded
