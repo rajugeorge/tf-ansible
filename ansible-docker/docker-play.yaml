@@ -100,6 +100,8 @@
         name: docker
         state: started
         enabled: yes
+    - name: Reconnect to server session
+      meta: reset_connection
 
     - name: fetch docker-compose checksum
       uri:
