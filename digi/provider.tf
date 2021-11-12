@@ -19,7 +19,7 @@ resource "digitalocean_droplet" "ansible_machine" {
   image = "ubuntu-20-04-x64"
   name = var.instance_name
   region = "blr1"
-  size = "s-2vcpu-4gb"
+  size = var.instance_size
   ssh_keys = [
       data.digitalocean_ssh_key.macmini-ssh-2.id
   ]

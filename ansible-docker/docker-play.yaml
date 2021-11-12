@@ -1,14 +1,14 @@
 ---
 - name: Update apt
-  hosts: nexus-server
+  hosts: docker_server
   tasks:
     - name: Update apt
-      apt: update_cache=yes force_apt_get=yes
+      apt: update_cache=yes force_apt_get=yes cache_valid_time=3600
 
 - name: Create linux user
-  hosts: nexus-server
+  hosts: docker_server
   vars_files:
-    - project-vars
+    - project_vars
   tasks:
     - name: Create linux user
       user:
@@ -21,9 +21,9 @@
         update_password: always
 
 - name: Add authorized keys
-  hosts: nexus-server
+  hosts: docker_server
   vars_files:
-    - project-vars
+    - project_vars
   tasks:
     - name: Check if the key exists
       local_action: stat path="{{ key_location }}"
@@ -36,9 +36,9 @@
       when: key_exists.stat.exists
 
 - name: Copy sshd_config
-  hosts: nexus-server
+  hosts: docker_server
   vars_files:
-    - project-vars
+    - project_vars
   tasks:
     - name: Check if the key exists
       local_action: stat path="{{ config_location }}"
@@ -55,3 +55,61 @@
       service:
         name: sshd
         state: reloaded
+
+- name: Install docker
+  hosts: docker_server
+  vars_files:
+    - project_vars
+  tasks:
+    - name: Install prerequisites for Docker repository
+      apt:
+        pkg:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg2
+          - software-properties-common
+
+    - name: add docker apt key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: add docker apt repo
+      apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/{{ ansible_distribution|lower }} {{ ansible_distribution_release }} stable"
+        state: present
+        update_cache: yes
+
+    - name: install docker and it's dependencies
+      apt:
+        pkg:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+        state: present
+
+    - name: Add user to docker group
+      user:
+        name: "{{linux_user}}"
+        groups: docker
+        append: yes
+
+    - name: start and enable docker daemon
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: fetch docker-compose checksum
+      uri:
+        url: https://github.com/docker/compose/releases/download/{{ docker_compose_version }}/docker-compose-{{ ansible_system }}-{{ ansible_machine }}.sha256
+        return_content: yes
+      register: docker_compose_checksum
+
+    - name: install docker-compose
+      get_url:
+        url: https://github.com/docker/compose/releases/download/{{ docker_compose_version }}/docker-compose-{{ ansible_system }}-{{ ansible_machine }}
+        checksum: "sha256:{{ docker_compose_checksum.content.split(' ') | first }}"
+        dest: /usr/local/bin/docker-compose
+        mode: "0755"

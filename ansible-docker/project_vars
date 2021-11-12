@@ -1,5 +1,6 @@
-linux_user: docker
+linux_user: raju
 password: $6$mysecretsalt$Dnk5Hlx/RqZct9oAhaOK5WR3FIN/va2BLw5flMrU2Ha9HkXLFzjK2/fCC1M5s4ChNX9V/KqX7ldPS0PCv54aj.
 key_location: /Users/rajugeorge/.ssh/do-raju-2.pub
 config_location: /Users/rajugeorge/Documents/projects/terraform/tf-self/ansible-docker/overrides.conf
 sshd_location: /etc/ssh/sshd_config.d/
+docker_compose_version: 1.29.2
